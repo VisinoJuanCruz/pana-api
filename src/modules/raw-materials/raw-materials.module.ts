@@ -1,11 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { RawMaterialsService } from './raw-materials.service';
 import { RawMaterialsController } from './raw-materials.controller';
-import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaService } from '../prisma/prisma.service';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [forwardRef(() => AuthModule)],
   controllers: [RawMaterialsController],
-  providers: [RawMaterialsService],
+  providers: [RawMaterialsService, PrismaService],
 })
 export class RawMaterialsModule {}

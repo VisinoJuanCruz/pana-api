@@ -21,6 +21,26 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum BalanceType {
+  CREDIT
+  DEBIT
+}
+
+enum UserRole {
+  ADMIN
+  EMPLOYEE
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Customer {
   id        Int               @id @default(autoincrement())
   name      String
@@ -34,16 +54,12 @@ model Customer {
   updatedAt DateTime          @updatedAt
   returns   Return[]
   balances  CustomerBalance[]
+  payments  Payment[]
 
-  // Pedidos del cliente
   orders          Order[]
   recurringOrders RecurringOrder[]
-
-  // Relación con delivery person habitual
-  deliveryRoutes DeliveryRoute[]
-
-  // Precios personalizados
-  customPrices CustomerProductPrice[]
+  deliveryRoutes  DeliveryRoute[]
+  customPrices    CustomerProductPrice[]
 }
 
 model DeliveryPerson {
@@ -53,11 +69,8 @@ model DeliveryPerson {
   vehicle String?
   returns Return[]
 
-  // Pedidos asignados
   deliveries Delivery[]
-
-  // Clientes habituales
-  routes DeliveryRoute[]
+  routes     DeliveryRoute[]
 }
 
 model DeliveryRoute {
@@ -88,9 +101,7 @@ model Order {
   status     OrderStatus @default(PENDING)
   total      Float       @default(0)
   items      OrderItem[]
-
-  // Relación 1:1 con Delivery
-  delivery Delivery?
+  delivery   Delivery?
 }
 
 model OrderItem {
@@ -114,28 +125,14 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relación con receta
-  recipe   Recipe? @relation(fields: [recipeId], references: [id])
-  recipeId Int?
-
-  orderItems    OrderItem[]
-  deliveryItems DeliveryItem[]
-  customPrices  CustomerProductPrice[]
-  returnItems   ReturnItem[]
-
+  recipeId        Int?
+  recipe          Recipe?              @relation(fields: [recipeId], references: [id])
+  orderItems      OrderItem[]
+  deliveryItems   DeliveryItem[]
+  customPrices    CustomerProductPrice[]
+  returnItems     ReturnItem[]
+  inventoryItems  Inventory[]
   recurringOrders RecurringOrder[]
-}
-
-model RawMaterial {
-  id        Int      @id @default(autoincrement())
-  name      String
-  unit      String
-  stock     Float?   @default(0)
-  price     Float?   @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  recipeItems RecipeItem[]
 }
 
 model Recipe {
@@ -195,12 +192,17 @@ model DeliveryItem {
 }
 
 model Payment {
-  id         Int      @id @default(autoincrement())
-  delivery   Delivery @relation(fields: [deliveryId], references: [id])
-  deliveryId Int
-  amount     Float
-  method     String
-  createdAt  DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  customerId  Int?
+  deliveryId  Int?
+  amount      Decimal
+  method      String
+  description String?
+  date        DateTime @default(now())
+
+  customer        Customer?        @relation(fields: [customerId], references: [id])
+  delivery        Delivery?        @relation(fields: [deliveryId], references: [id])
+  customerBalance CustomerBalance?
 }
 
 model CashClosure {
@@ -248,12 +250,54 @@ enum ReturnDestination {
 }
 
 model CustomerBalance {
-  id          Int      @id @default(autoincrement())
-  customerId  Int
-  type        String // "CREDIT" o "DEBIT"
-  description String?
+  id          Int         @id @default(autoincrement())
+  createdAt   DateTime    @default(now())
+  date        DateTime
+  type        BalanceType
   amount      Float
-  date        DateTime @default(now())
+  description String?
 
-  customer Customer @relation(fields: [customerId], references: [id])
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  paymentId Int?     @unique
+  payment   Payment? @relation(fields: [paymentId], references: [id])
+}
+
+model RawMaterial {
+  id        Int      @id @default(autoincrement())
+  name      String
+  unit      Unit
+  stock     Float    @default(0)
+  price     Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recipeItems    RecipeItem[]
+  inventoryItems Inventory[]
+}
+
+enum Unit {
+  UNIT
+  GRAM
+  KILOGRAM
+  MILLILITER
+  LITER
+  TABLESPOON
+  TEASPOON
+}
+
+model Inventory {
+  id            Int      @id @default(autoincrement())
+  itemType      String
+  productId     Int?
+  rawMaterialId Int?
+  quantity      Float    @default(0)
+  unit          Unit     @default(UNIT)
+  note          String?
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  product     Product?     @relation(fields: [productId], references: [id])
+  rawMaterial RawMaterial? @relation(fields: [rawMaterialId], references: [id])
 }

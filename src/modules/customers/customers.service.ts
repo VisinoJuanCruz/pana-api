@@ -10,17 +10,36 @@ export class CustomersService {
     return this.prisma.customer.create({ data });
   }
 
-  findAll(skip?: number, take?: number, search?: string): Promise<Customer[]> {
+  async findAll(page = 1, perPage = 10, search?: string) {
+    if (page < 1) page = 1;
+    if (perPage < 1) perPage = 10;
+
+    const skip = (page - 1) * perPage;
+    const take = perPage;
+
     const where: Prisma.CustomerWhereInput | undefined = search
-      ? { name: { contains: search, mode: Prisma.QueryMode.insensitive } }
+      ? { name: { contains: search, mode: 'insensitive' } }
       : undefined;
 
-    return this.prisma.customer.findMany({
-      where,
-      skip,
-      take,
-      orderBy: { name: 'asc' },
-    });
+    const [total, items] = await Promise.all([
+      this.prisma.customer.count({ where }),
+      this.prisma.customer.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        perPage,
+        totalPages: Math.ceil(total / perPage),
+      },
+    };
   }
 
   findOne(id: number): Promise<Customer | null> {

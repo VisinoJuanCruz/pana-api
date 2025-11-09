@@ -1,12 +1,14 @@
-// src/modules/deliveries/deliveries.module.ts
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { DeliveriesService } from './deliveries.service';
 import { DeliveriesController } from './deliveries.controller';
-import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaService } from '../prisma/prisma.service';
+import { PaymentsModule } from '../payments/payments.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PaymentsModule, forwardRef(() => AuthModule)],
   controllers: [DeliveriesController],
-  providers: [DeliveriesService],
+  providers: [DeliveriesService, PrismaService],
+  exports: [DeliveriesService],
 })
 export class DeliveriesModule {}

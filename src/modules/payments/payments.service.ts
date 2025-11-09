@@ -8,58 +8,81 @@ export class PaymentsService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreatePaymentDto) {
-    // validate delivery exists
-    const delivery = await this.prisma.delivery.findUnique({
-      where: { id: dto.deliveryId },
-    });
-    if (!delivery) throw new NotFoundException('Delivery not found');
+    if (dto.customerId) {
+      const customer = await this.prisma.customer.findUnique({
+        where: { id: dto.customerId },
+      });
+      if (!customer) throw new NotFoundException('Customer no encontrado');
+    }
 
-    const payment = await this.prisma.payment.create({
+    if (dto.deliveryId) {
+      const delivery = await this.prisma.delivery.findUnique({
+        where: { id: dto.deliveryId },
+      });
+      if (!delivery) throw new NotFoundException('Delivery no encontrado');
+    }
+
+    return this.prisma.payment.create({
       data: {
+        customerId: dto.customerId,
         deliveryId: dto.deliveryId,
         amount: dto.amount,
         method: dto.method,
+        description: dto.description,
+        date: dto.date ? new Date(dto.date) : undefined,
       },
-    });
-
-    return payment;
-  }
-
-  async findAll() {
-    return this.prisma.payment.findMany({
-      include: {
-        delivery: { include: { order: { include: { customer: true } } } },
-      },
-      orderBy: { createdAt: 'desc' },
+      include: { customer: true, delivery: true, customerBalance: true },
     });
   }
 
-  async findByDelivery(deliveryId: number) {
+  async findAll(filters?: {
+    customerId?: number;
+    deliveryId?: number;
+    from?: string;
+    to?: string;
+  }) {
+    const where: any = {};
+    if (filters?.customerId) where.customerId = filters.customerId;
+    if (filters?.deliveryId) where.deliveryId = filters.deliveryId;
+    if (filters?.from || filters?.to) {
+      where.date = {};
+      if (filters.from) where.date.gte = new Date(filters.from);
+      if (filters.to) where.date.lte = new Date(filters.to);
+    }
+
     return this.prisma.payment.findMany({
-      where: { deliveryId },
-      orderBy: { createdAt: 'desc' },
+      where,
+      include: { customer: true, delivery: true, customerBalance: true },
+      orderBy: { date: 'desc' },
     });
   }
 
   async findOne(id: number) {
-    const p = await this.prisma.payment.findUnique({ where: { id } });
-    if (!p) throw new NotFoundException('Payment not found');
-    return p;
+    const payment = await this.prisma.payment.findUnique({
+      where: { id },
+      include: { customer: true, delivery: true, customerBalance: true },
+    });
+    if (!payment) throw new NotFoundException('Payment no encontrado');
+    return payment;
   }
 
   async update(id: number, dto: UpdatePaymentDto) {
-    await this.findOne(id);
+    const existing = await this.prisma.payment.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Payment no encontrado');
+
     return this.prisma.payment.update({
       where: { id },
       data: {
-        amount: dto.amount,
-        method: dto.method,
+        amount: dto.amount ?? existing.amount,
+        method: dto.method ?? existing.method,
+        description: dto.description ?? existing.description,
+        date: dto.date ? new Date(dto.date) : existing.date,
       },
+      include: { customer: true, delivery: true, customerBalance: true },
     });
   }
 
-  async remove(id: number) {
-    await this.findOne(id);
+  async delete(id: number) {
     return this.prisma.payment.delete({ where: { id } });
   }
 }

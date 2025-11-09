@@ -1,11 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
 import { PrismaService } from '../prisma/prisma.service';
-import { RecipesModule } from '../recipes/recipes.module'; // 👈 Importamos esto
+import { RecipesModule } from '../recipes/recipes.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [RecipesModule], // 👈 ¡Esto es lo que faltaba!
+  imports: [RecipesModule, forwardRef(() => AuthModule)],
   controllers: [ProductsController],
   providers: [ProductsService, PrismaService],
 })

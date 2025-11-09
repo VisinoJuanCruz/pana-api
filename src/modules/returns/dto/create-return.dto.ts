@@ -2,33 +2,35 @@ import {
   IsInt,
   IsOptional,
   IsString,
-  IsEnum,
-  IsArray,
+  IsDateString,
   ValidateNested,
-  IsNumber,
+  IsArray,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ReturnDestination } from '@prisma/client';
 
-class ReturnItemDto {
+export class CreateReturnItemDto {
   @IsInt()
   productId: number;
 
-  @IsNumber()
+  @Min(0)
   quantity: number;
 
-  @IsNumber()
+  @Min(0)
   unitPrice: number;
 
-  @IsNumber()
+  @Min(0)
   totalValue: number;
 
   @IsOptional()
   @IsString()
   reason?: string;
 
-  @IsEnum(ReturnDestination)
-  destination: ReturnDestination;
+  @IsOptional()
+  destination?: 'DISCARDED' | 'RALLADO' | 'DISCOUNTED';
+
+  @IsOptional()
+  discountApplied?: boolean;
 }
 
 export class CreateReturnDto {
@@ -40,11 +42,19 @@ export class CreateReturnDto {
   deliveryPersonId?: number;
 
   @IsOptional()
+  @IsDateString()
+  date?: string;
+
+  @IsOptional()
   @IsString()
   notes?: string;
 
+  @IsOptional()
+  totalLoss?: number;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => ReturnItemDto)
-  items: ReturnItemDto[];
+  @Type(() => CreateReturnItemDto)
+  items?: CreateReturnItemDto[];
 }

@@ -1,4 +1,3 @@
-// src/modules/deliveries/dto/create-delivery.dto.ts
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsDateString, IsEnum } from 'class-validator';
 import { DeliveryStatus } from '@prisma/client';

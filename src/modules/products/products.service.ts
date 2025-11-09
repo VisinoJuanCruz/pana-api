@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RecipesService } from '../recipes/recipes.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateProductWithRecipeDto } from './dto/create-product-with-recipe.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ProductsService {
@@ -15,9 +16,7 @@ export class ProductsService {
     return this.prisma.product.create({ data: dto });
   }
 
-  // Crea receta delegando en RecipesService y luego crea el producto
   async createProductWithRecipe(dto: CreateProductWithRecipeDto) {
-    // Si viene recipe, usar RecipesService (espera ingredients)
     const recipe = dto.recipe
       ? await this.recipesService.createRecipe({
           name: dto.recipe.name,
@@ -34,7 +33,6 @@ export class ProductsService {
         recipeId: recipe ? recipe.id : undefined,
       },
       include: {
-        // incluir receta bajo el nombre actual 'ingredients'
         recipe: {
           include: { ingredients: { include: { rawMaterial: true } } },
         },
@@ -64,13 +62,55 @@ export class ProductsService {
     });
   }
 
-  async findAll() {
-    return this.prisma.product.findMany({
+  async findAll(page = 1, perPage = 10, search?: string) {
+    if (page < 1) page = 1;
+    if (perPage < 1) perPage = 10;
+
+    const skip = (page - 1) * perPage;
+    const take = perPage;
+
+    const where: Prisma.ProductWhereInput | undefined = search
+      ? { name: { contains: search, mode: 'insensitive' } }
+      : undefined;
+
+    const [total, items] = await Promise.all([
+      this.prisma.product.count({ where }),
+      this.prisma.product.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { name: 'asc' },
+        include: {
+          recipe: {
+            include: { ingredients: { include: { rawMaterial: true } } },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        perPage,
+        totalPages: Math.ceil(total / perPage),
+      },
+    };
+  }
+
+  async findOne(id: number) {
+    const product = await this.prisma.product.findUnique({
+      where: { id },
       include: {
         recipe: {
           include: { ingredients: { include: { rawMaterial: true } } },
         },
       },
     });
+
+    if (!product)
+      throw new NotFoundException(`Producto con id ${id} no encontrado`);
+    return product;
   }
 }

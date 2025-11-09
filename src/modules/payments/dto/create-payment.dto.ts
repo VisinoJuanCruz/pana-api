@@ -1,16 +1,33 @@
-import { IsInt, IsNumber, IsString, IsOptional } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsNumber,
+  IsString,
+  IsEnum,
+  IsDateString,
+} from 'class-validator';
+import { BalanceType } from '@prisma/client';
 
 export class CreatePaymentDto {
+  @IsOptional()
   @IsInt()
-  deliveryId: number;
+  customerId?: number;
+
+  @IsOptional()
+  @IsInt()
+  deliveryId?: number;
 
   @IsNumber()
   amount: number;
 
   @IsString()
-  method: string; // e.g. "CASH", "CARD", "TRANSFER"
+  method: string;
 
   @IsOptional()
   @IsString()
-  note?: string;
+  description?: string;
+
+  @IsOptional()
+  @IsDateString()
+  date?: string;
 }

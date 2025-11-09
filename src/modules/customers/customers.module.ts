@@ -1,12 +1,13 @@
-// src/modules/customers/customers.module.ts
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { CustomersController } from './customers.controller';
-import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaService } from '../prisma/prisma.service';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [forwardRef(() => AuthModule)],
   controllers: [CustomersController],
-  providers: [CustomersService],
+  providers: [CustomersService, PrismaService],
+  exports: [CustomersService],
 })
 export class CustomersModule {}

@@ -1,19 +1,18 @@
-import { IsString, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsNumber } from 'class-validator';
+import { Unit } from '@prisma/client';
 
 export class CreateRawMaterialDto {
   @IsString()
   name: string;
 
-  @IsString()
-  unit: string;
+  @IsEnum(Unit)
+  unit: Unit;
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
   stock?: number;
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
   price?: number;
 }

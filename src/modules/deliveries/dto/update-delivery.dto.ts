@@ -1,6 +1,21 @@
-// src/modules/deliveries/dto/update-delivery.dto.ts
-import { IsOptional, IsInt, IsEnum } from 'class-validator';
+import {
+  IsOptional,
+  IsInt,
+  IsEnum,
+  IsDateString,
+  ValidateNested,
+  IsArray,
+} from 'class-validator';
 import { DeliveryStatus } from '@prisma/client';
+import { Type } from 'class-transformer';
+
+class DeliveryItemDto {
+  @IsInt()
+  productId: number;
+
+  @IsInt()
+  quantity: number;
+}
 
 export class UpdateDeliveryDto {
   @IsOptional()
@@ -8,6 +23,7 @@ export class UpdateDeliveryDto {
   deliveryPersonId?: number;
 
   @IsOptional()
+  @IsDateString()
   date?: Date;
 
   @IsOptional()
@@ -15,5 +31,8 @@ export class UpdateDeliveryDto {
   status?: DeliveryStatus;
 
   @IsOptional()
-  items?: { productId: number; quantity: number }[];
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DeliveryItemDto)
+  items?: DeliveryItemDto[];
 }
